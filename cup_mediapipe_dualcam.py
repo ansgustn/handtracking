@@ -5,6 +5,26 @@ import numpy as np
 import threading
 import time
 
+"""
+[실험 환경 정의 (Environment Setup & Controlled Variables)]
+측정 실험을 진행할 때 반드시 통제되어야 하는 물리적, 소프트웨어적 세팅 값들입니다. 
+이 기준을 벗어나면 데이터 오차가 커집니다.
+
+1. 물리적 환경 통제
+- 대상 객체 (Target Object): 상단 컵(고정축)과 하단 컵(회전축)으로 구성된 2단 종이컵. 마커 부착 금지 (Markerless 조건).
+- 카메라 배치 (Camera Topology):
+  * Cam 1: 작업자의 정면 기준 좌측 45도, 위에서 아래로(Top-down) 비스듬히 내려다보는 앵글. (객체와의 거리 30~50cm 고정)
+  * Cam 2: 작업자의 정면 기준 우측 45도, 위에서 아래로 비스듬히 내려다보는 앵글. (Cam 1과 대칭 구조)
+  ※ 두 카메라가 90도 각도를 이루며 객체의 360도 전방위를 교차 감시하여 사각지대를 없앰.
+- 조명 및 배경 (Lighting & Background): 하얀색 종이컵과 손의 대비를 극대화하기 위해 바닥에 무광 검은색 매트 사용. 그림자 최소화를 위해 확산광(간접 조명) 사용.
+- 작업자 동작 통제 (Actor Pose): 엄지와 검지만 사용하여 객체를 파지하는 정밀 그립(Precision Pinch Grip) 상태 유지.
+
+2. 소프트웨어 파라미터 세팅 (코드에 적용됨)
+- 해상도 (Resolution): 640 x 480 고정 (연산 속도와 픽셀 분해능의 타협점)
+- MediaPipe 신뢰도: min_detection_confidence = 0.7, min_tracking_confidence = 0.7 
+- 이중 EMA 필터 강도 (alpha): alpha_lm = 0.15 (랜드마크 스무딩), alpha_angle = 0.15 (각도 스무딩)
+"""
+
 # 1. MediaPipe 손 추적 초기화 (Tasks API 활용)
 BaseOptions = mp.tasks.BaseOptions
 HandLandmarker = mp.tasks.vision.HandLandmarker
