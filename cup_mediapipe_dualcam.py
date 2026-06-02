@@ -210,6 +210,88 @@ class CameraThread(threading.Thread):
         self.cap.release()
         self.landmarker.close()
 
+def save_and_plot_results(trials):
+    import csv
+    
+    if not trials:
+        print("[오류] 저장할 실험 데이터가 없습니다!")
+        return
+
+    csv_filename = "experiment_results.csv"
+    graph_filename = "experiment_graph.png"
+    
+    # 1. CSV 파일 저장
+    try:
+        with open(csv_filename, mode='w', newline='', encoding='utf-8') as f:
+            writer = csv.writer(f)
+            writer.writerow(["Trial", "Elapsed_Time_Sec", "Angle_Deg"])
+            for trial_idx, data in sorted(trials.items()):
+                for t, angle in data:
+                    writer.writerow([trial_idx, f"{t:.3f}", f"{angle:.2f}"])
+        print(f"[성공] 실험 데이터가 '{csv_filename}'에 성공적으로 저장되었습니다.")
+    except Exception as e:
+        print(f"[오류] CSV 저장 중 문제가 발생했습니다: {e}")
+
+    # 2. Matplotlib 그래프 시각화
+    try:
+        import matplotlib.pyplot as plt
+        
+        # 한국어 폰트 설정 (Windows 기준 맑은 고딕 사용)
+        import platform
+        if platform.system() == 'Windows':
+            plt.rc('font', family='Malgun Gothic')
+            plt.rcParams['axes.unicode_minus'] = False # 마이너스 기호 깨짐 방지
+            
+        plt.figure(figsize=(12, 7))
+        
+        # 10가지 세련된 컬러 조합 정의
+        colors = [
+            '#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd',
+            '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf'
+        ]
+        
+        print("\n--- 실험 통계 요약 ---")
+        for i, (trial_idx, data) in enumerate(sorted(trials.items())):
+            if not data:
+                continue
+            times = [item[0] for item in data]
+            angles = [item[1] for item in data]
+            
+            # 통계값 계산
+            max_ang = max(angles)
+            min_ang = min(angles)
+            mean_ang = np.mean(angles)
+            range_ang = max_ang - min_ang
+            
+            print(f"실험 {trial_idx}: 데이터 {len(data)}개 | 최대 {max_ang:.1f}° | 최소 {min_ang:.1f}° | 변화폭 {range_ang:.1f}°")
+            
+            # 그래프에 데이터 플롯
+            color = colors[(trial_idx - 1) % len(colors)]
+            plt.plot(times, angles, label=f'실험 {trial_idx} (최대 {max_ang:.1f}°)', color=color, linewidth=2, alpha=0.85)
+            
+        plt.title("10회 회전 실험 각도 측정 결과", fontsize=16, fontweight='bold', pad=15)
+        plt.xlabel("경과 시간 (초)", fontsize=12, labelpad=10)
+        plt.ylabel("회전 각도 (도)", fontsize=12, labelpad=10)
+        plt.grid(True, linestyle='--', alpha=0.6)
+        
+        # 범례를 오른쪽 바깥에 예쁘게 배치
+        plt.legend(loc='upper left', bbox_to_anchor=(1.02, 1), borderaxespad=0, frameon=True, shadow=True, fontsize=10)
+        plt.tight_layout()
+        
+        # 그래프 이미지로 저장
+        plt.savefig(graph_filename, dpi=300, bbox_inches='tight')
+        print(f"[성공] 시각화 그래프가 '{graph_filename}'에 성공적으로 저장되었습니다.")
+        
+        # 그래프 창 표시
+        plt.show()
+        
+    except ImportError:
+        print("\n[알림] 'matplotlib' 라이브러리가 설치되어 있지 않아 그래프를 화면에 표시하거나 이미지로 저장할 수 없습니다.")
+        print("터미널에 'pip install matplotlib'를 입력하여 설치한 후 다시 시도해 주세요.")
+        print("단, 텍스트 데이터(CSV 파일)는 성공적으로 저장되었습니다.")
+    except Exception as e:
+        print(f"[오류] 그래프 생성 중 문제가 발생했습니다: {e}")
+
 def main():
     print("카메라를 준비 중입니다. 잠시만 기다려주세요...")
     # 스레드 2개 생성 및 시작
@@ -221,6 +303,16 @@ def main():
     
     print("['s' 키]를 누르면 두 카메라에서 보이는 현재 손가락 각도를 0도(기준점)로 설정합니다.")
     print("['q' 키]를 누르면 종료합니다.")
+    print("[Space 키]를 누르면 현재 실험의 실시간 녹화를 시작/중지합니다.")
+    print("['g' 키]를 누르면 수집된 데이터를 그래프로 시각화하고 CSV 파일로 저장합니다.")
+    print("['c' 키]를 누르면 수집된 모든 실험 데이터를 초기화합니다.")
+    
+    # 실험 기록용 변수 초기화
+    trials = {}
+    current_trial = 1
+    MAX_TRIALS = 10
+    is_recording = False
+    recording_start_time = 0.0
     
     # 두 카메라 프레임이 모두 한 번은 들어올 때까지 대기
     while cam1_thread.current_frame is None and cam2_thread.current_frame is None:
@@ -266,7 +358,16 @@ def main():
             elif rot2 is not None:
                 combined_rotation = rot2 # 카메라 2만 보일 때
                 
-            # 화면 가장 아래 중앙에 종합 각도 크게 표시
+            # 실시간 실험 데이터 녹화
+            elapsed_time = 0.0
+            if is_recording:
+                elapsed_time = time.time() - recording_start_time
+                if combined_rotation is not None:
+                    if current_trial not in trials:
+                        trials[current_trial] = []
+                    trials[current_trial].append((elapsed_time, combined_rotation))
+            
+            # --- 종합 각도(Combined Rotation) 표시 ---
             if combined_rotation is not None:
                 dh, dw = display_frame.shape[:2]
                 text = f"Total Rotation: {combined_rotation:.1f} deg"
@@ -281,6 +382,65 @@ def main():
                 cv2.putText(display_frame, text, (text_x, text_y), 
                             font, 1.5, (0, 255, 255), 3)
 
+            # --- 실험 UI 오버레이 (Premium HUD style) ---
+            dh, dw = display_frame.shape[:2]
+            
+            # 좌측 상단에 정보창 그리기
+            panel_x1, panel_y1 = 20, 20
+            panel_x2, panel_y2 = 420, 160
+            
+            # 반투명 배경 효과 (검은색 박스)
+            overlay = display_frame.copy()
+            cv2.rectangle(overlay, (panel_x1, panel_y1), (panel_x2, panel_y2), (30, 30, 30), cv2.FILLED)
+            
+            # alpha blending로 반투명 적용
+            cv2.addWeighted(overlay, 0.75, display_frame, 0.25, 0, display_frame)
+            
+            # 테두리 선
+            cv2.rectangle(display_frame, (panel_x1, panel_y1), (panel_x2, panel_y2), (100, 100, 100), 2)
+            
+            # 텍스트 오버레이용 폰트
+            font = cv2.FONT_HERSHEY_SIMPLEX
+            
+            # 상태 및 실험 번호
+            if is_recording:
+                # 녹화 중에는 빨간색 녹화 아이콘(깜빡임 적용)과 텍스트
+                dot_color = (0, 0, 255) if int(time.time() * 2) % 2 == 0 else (50, 50, 150)
+                cv2.circle(display_frame, (40, 55), 8, dot_color, -1)
+                
+                status_text = f"REC - Trial {current_trial}/{MAX_TRIALS}"
+                cv2.putText(display_frame, status_text, (65, 65), font, 0.75, (0, 0, 255), 2)
+                
+                # 경과 시간 및 데이터 개수
+                data_count = len(trials.get(current_trial, []))
+                time_text = f"Time: {elapsed_time:.1f}s | Pts: {data_count}"
+                cv2.putText(display_frame, time_text, (40, 105), font, 0.65, (255, 255, 255), 1)
+                
+                # 조작 가이드
+                guide_text = "Press SPACE to STOP Recording"
+                cv2.putText(display_frame, guide_text, (40, 140), font, 0.55, (0, 255, 255), 1)
+            else:
+                # 녹화 대기 상태
+                if len(trials) >= MAX_TRIALS:
+                    # 10회 완료 상태
+                    cv2.circle(display_frame, (40, 55), 8, (0, 215, 255), -1) # 금색 원
+                    status_text = "COMPLETED 10/10 Trials"
+                    cv2.putText(display_frame, status_text, (65, 65), font, 0.75, (0, 215, 255), 2)
+                    
+                    guide_text = "Press 'g' to PLOT | 'c' to RESET"
+                    cv2.putText(display_frame, guide_text, (40, 110), font, 0.65, (0, 255, 255), 2)
+                else:
+                    # 대기 상태
+                    cv2.circle(display_frame, (40, 55), 8, (0, 255, 0), -1) # 초록색 원
+                    status_text = f"READY - Trial {current_trial}/{MAX_TRIALS}"
+                    cv2.putText(display_frame, status_text, (65, 65), font, 0.75, (0, 255, 0), 2)
+                    
+                    guide_text = "Press SPACE to START Recording"
+                    cv2.putText(display_frame, guide_text, (40, 110), font, 0.6, (200, 200, 200), 1)
+                    
+                    guide_text2 = "Press 'c' to RESET data"
+                    cv2.putText(display_frame, guide_text2, (40, 140), font, 0.5, (150, 150, 150), 1)
+
             cv2.imshow('Dual Camera Finger Rotation Tracker', display_frame)
 
         key = cv2.waitKey(30) & 0xFF
@@ -289,6 +449,39 @@ def main():
         elif key == ord('s'):
             cam1_thread.set_baseline()
             cam2_thread.set_baseline()
+        elif key == 32: # SPACE Bar 키
+            if not is_recording:
+                # 녹화 시작
+                if current_trial <= MAX_TRIALS:
+                    is_recording = True
+                    recording_start_time = time.time()
+                    trials[current_trial] = []
+                    print(f"\n>>> [실험 {current_trial}/{MAX_TRIALS}] 녹화를 시작합니다. (Space 키를 누르면 종료)")
+                else:
+                    print(f"\n[경고] 이미 {MAX_TRIALS}번의 실험을 완료했습니다. 'g' 키로 저장하거나 'c' 키로 초기화하세요.")
+            else:
+                # 녹화 종료
+                is_recording = False
+                data_points = len(trials.get(current_trial, []))
+                print(f">>> [실험 {current_trial}/{MAX_TRIALS}] 녹화 완료! 수집된 데이터 포인트: {data_points}개")
+                
+                if current_trial < MAX_TRIALS:
+                    current_trial += 1
+                else:
+                    current_trial = MAX_TRIALS + 1 # 10회 완료 표시용
+                    print("\n🎉 모든 10회의 실험 데이터 수집이 완료되었습니다!")
+                    print(">>> 'g' 키를 눌러 CSV 데이터 저장 및 그래프를 출력하세요.")
+        elif key == ord('g'):
+            if trials:
+                print("\n[작업] 실험 데이터 저장 및 그래프 생성을 진행합니다...")
+                save_and_plot_results(trials)
+            else:
+                print("\n[오류] 기록된 실험 데이터가 없습니다. 먼저 실험을 시작해 주세요!")
+        elif key == ord('c'):
+            trials.clear()
+            current_trial = 1
+            is_recording = False
+            print("\n🧹 모든 실험 데이터가 초기화되었습니다. 처음부터 다시 시작합니다.")
 
     # 안전하게 스레드 종료
     cam1_thread.stop()
