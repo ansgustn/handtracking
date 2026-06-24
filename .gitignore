@@ -1,0 +1,6 @@
+__pycache__/
+*.zip
+*.pt
+*.pth
+*.onnx
+HandTracking-master/FreiHAND_pub_v2.zip

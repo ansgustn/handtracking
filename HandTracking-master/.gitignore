@@ -1,0 +1,22 @@
+# 대용량 데이터 파일
+training_verts.json
+training_xyz.json
+training_mano.json
+training_K.json
+training_scale.json
+evaluation_K.json
+evaluation_scale.json
+
+# 모델 가중치 (대용량)
+freihand_custom_model.pth
+yolo11n.pt
+hand_landmarker.task
+
+# 파이썬 캐시
+__pycache__/
+*.pyc
+*.pyo
+
+# 폴더
+training/
+evaluation/

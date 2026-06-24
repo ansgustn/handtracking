@@ -1,0 +1,6 @@
+rtmlib
+onnxruntime
+opencv-python
+numpy
+matplotlib
+pykinect-azure
