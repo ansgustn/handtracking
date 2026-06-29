@@ -28,7 +28,7 @@ for model in stages:
                     cam_vals.append(abs(val))
             
             if cam_vals:
-                bars.append(np.mean(cam_vals))
+                bars.append(np.median(cam_vals))
             else:
                 bars.append(0)
         else:
@@ -45,9 +45,9 @@ for model in stages:
     
     multiplier += 1
 
-plt.title("Model Evaluation Snapshot (Average of All Cameras)", fontsize=16, fontweight='bold')
+plt.title("Model Evaluation Snapshot (Median of All Cameras)", fontsize=16, fontweight='bold')
 plt.xlabel("Target Angle")
-plt.ylabel("Average Measured Angle (Degree) [Absolute]")
+plt.ylabel("Median Measured Angle (Degree) [Absolute]")
 plt.xticks(x + width, [f"{t}°" for t in target_angles])
 
 plt.legend(loc='upper right', title="Model")
@@ -58,4 +58,4 @@ ax.set_ylim(0, max(400, ax.get_ylim()[1] * 1.1))
 
 plt.tight_layout()
 plt.savefig("multicam_evaluation_snapshot_bar.png", dpi=300)
-print("평균 통합 그래프 재생성 완료!")
+print("중앙값(Median) 통합 그래프 재생성 완료!")

@@ -198,19 +198,42 @@ class CameraThread(threading.Thread):
 
 def main():
     print("========================================")
-    print("시스템에 연결된 카메라(UVC)를 탐색합니다...")
-    available_cams = []
-    # 0번부터 4번까지 카메라 인덱스를 스캔합니다.
+    cam_configs = []
+    kinect_found = False
+    
+    print("Azure Kinect 연결을 시도합니다...")
+    try:
+        pykinect.initialize_libraries()
+        device_config = pykinect.default_configuration
+        device = pykinect.start_device(device_index=0, config=device_config)
+        device.close()
+        print("✅ Azure Kinect 발견!")
+        cam_configs.append({'type': 'kinect', 'idx': 0, 'name': 'Camera_1 (Kinect)'})
+        kinect_found = True
+    except Exception as e:
+        print(f"⚠️ Azure Kinect를 찾을 수 없거나 초기화 실패: {e}")
+
+    print("시스템에 연결된 일반 카메라(UVC)를 탐색합니다...")
     for i in range(5):
+        if len(cam_configs) >= 3:
+            break
         cap = cv2.VideoCapture(i, cv2.CAP_DSHOW)
         if cap.isOpened():
             ret, _ = cap.read()
             if ret:
-                available_cams.append(i)
+                if kinect_found and len(cam_configs) == 1 and i == 0:
+                    print(f"인덱스 {i}는 Kinect UVC로 추정되어 건너뜁니다.")
+                    cap.release()
+                    continue
+                cam_name = f"Camera_{len(cam_configs)+1}"
+                cam_configs.append({'type': 'webcam', 'idx': i, 'name': cam_name})
             cap.release()
             
-    print(f"발견된 카메라 인덱스: {available_cams} (총 {len(available_cams)}대)")
-    if len(available_cams) == 0:
+    print(f"최종 할당된 카메라 목록:")
+    for cfg in cam_configs:
+        print(f" - {cfg['name']}: {cfg['type']} (idx={cfg['idx']})")
+
+    if len(cam_configs) == 0:
         print("연결된 카메라가 없습니다. 종료합니다.")
         return
 
@@ -238,10 +261,7 @@ def main():
     else:
         print("⚠️ FreiHAND 모델 가중치가 없어 측정에서 제외됩니다.")
 
-    cam_configs = []
-    for idx, cam_index in enumerate(available_cams):
-        name = f"Camera_{idx+1}"
-        cam_configs.append({'type': 'webcam', 'idx': cam_index, 'name': name})
+    # cam_configs는 위에서 이미 최적화된 상태로 설정됨
     
     threads = []
     for cfg in cam_configs:
@@ -364,7 +384,7 @@ def main():
     final_df.to_csv("multicam_evaluation_snapshot.csv", index=False)
     print("✅ 데이터가 'multicam_evaluation_snapshot.csv'에 저장되었습니다.")
 
-    # ── 통합 막대 그래프 그리기 (오차 기준, 카메라 평균) ──
+    # ── 통합 막대 그래프 그리기 (오차 기준, 카메라 중앙값) ──
     # 한글 폰트 깨짐 방지
     plt.rc('font', family='Malgun Gothic')
     plt.rcParams['axes.unicode_minus'] = False
@@ -388,7 +408,7 @@ def main():
                     errors.append(error)
                     
             if errors:
-                bars.append(np.mean(errors)) # 카메라들의 오차 평균
+                bars.append(np.median(errors)) # 카메라들의 오차 중앙값
             else:
                 bars.append(np.nan) # 모든 카메라 측정 실패
                 
