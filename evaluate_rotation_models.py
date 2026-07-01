@@ -199,35 +199,27 @@ class CameraThread(threading.Thread):
 def main():
     print("========================================")
     cam_configs = []
-    kinect_found = False
     
-    print("Azure Kinect 연결을 시도합니다...")
-    try:
-        pykinect.initialize_libraries()
-        device_config = pykinect.default_configuration
-        device = pykinect.start_device(device_index=0, config=device_config)
-        device.close()
-        print("✅ Azure Kinect 발견!")
-        cam_configs.append({'type': 'kinect', 'idx': 0, 'name': 'Camera_1 (Kinect)'})
-        kinect_found = True
-    except Exception as e:
-        print(f"⚠️ Azure Kinect를 찾을 수 없거나 초기화 실패: {e}")
+    # ==========================================
+    # [사용자 설정] 카메라 인덱스 설정
+    # ==========================================
+    # OpenCV(웹캠)와 키넥트 SDK가 충돌하여 검은 화면이나 인식 불가 현상이 발생합니다.
+    # 이를 막기 위해 자동 탐색을 끄고 수동으로 인덱스를 지정합니다.
+    # 키넥트가 연결되어 있다면 True로 설정하세요.
+    USE_KINECT = True
+    # 일반 웹캠으로 사용할 인덱스 번호를 적어주세요. (보통 0, 1, 2 중 키넥트를 제외한 번호)
+    WEBCAM_INDICES = [0, 2]
+    
+    if USE_KINECT:
+        try:
+            pykinect.initialize_libraries()
+            print("✅ Azure Kinect 대기열 추가 완료!")
+            cam_configs.append({'type': 'kinect', 'idx': 0, 'name': 'Camera_1 (Kinect)'})
+        except Exception as e:
+            print(f"⚠️ Azure Kinect 초기화 실패: {e}")
 
-    print("시스템에 연결된 일반 카메라(UVC)를 탐색합니다...")
-    for i in range(5):
-        if len(cam_configs) >= 3:
-            break
-        cap = cv2.VideoCapture(i, cv2.CAP_DSHOW)
-        if cap.isOpened():
-            ret, _ = cap.read()
-            if ret:
-                if kinect_found and len(cam_configs) == 1 and i == 0:
-                    print(f"인덱스 {i}는 Kinect UVC로 추정되어 건너뜁니다.")
-                    cap.release()
-                    continue
-                cam_name = f"Camera_{len(cam_configs)+1}"
-                cam_configs.append({'type': 'webcam', 'idx': i, 'name': cam_name})
-            cap.release()
+    for i, idx in enumerate(WEBCAM_INDICES):
+        cam_configs.append({'type': 'webcam', 'idx': idx, 'name': f'Camera_{len(cam_configs)+1}'})
             
     print(f"최종 할당된 카메라 목록:")
     for cfg in cam_configs:
