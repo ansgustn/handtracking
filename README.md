@@ -35,6 +35,9 @@
 * **카메라 배치:** 대상 물체로부터 40cm 거리에 위치하며, 좌우 45도 및 -45도 각도에 Azure Kinect DK 뎁스 카메라 2대를 배치하고 정면에 웹캠 1대를 추가로 활용했습니다.
 * **실험 대상:** 실제 나사 측정 환경과 유사한 조건을 구현하기 위해 종이컵을 실험군으로 활용했습니다. 물체의 배치를 세로, 가로, 정면 등 다양한 형태로 변경하며 테스트를 진행했습니다.
 * **측정 각도:** 90도, 180도, 270도, 360도로 회전하며 데이터를 수집했습니다.
+<img width="1140" height="295" alt="정면1" src="https://github.com/user-attachments/assets/a9263c5f-59d8-4314-870f-11599faf3202" />
+<img width="1213" height="354" alt="세로1" src="https://github.com/user-attachments/assets/efe8a63a-ae01-4ac1-9cca-2cb084f852ac" />
+<img width="1195" height="359" alt="가로1" src="https://github.com/user-attachments/assets/c5f263b6-f3ba-4301-be6b-76106d015bac" />
 
 <br>
 
