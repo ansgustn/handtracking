@@ -39,9 +39,18 @@
 <br>
 
 ### 다중 카메라 측정 결과
-<img width="3600" height="2100" alt="다중 카메라 측정 결과" src="https://github.com/user-attachments/assets/a0d1a9ac-7526-4c21-88bf-47c9a99e68a8" />
+<img width="3600" height="2100" alt="45 45 정면 40cm" src="https://github.com/user-attachments/assets/ac339909-2669-4c3d-b31c-074aa0ff42d2" />
 
 * 대상 물체를 세로 기준으로 배치한 상태에서 총 10회 반복 측정한 결과 데이터입니다.
+
+<img width="3600" height="2100" alt="가로 오른쪽" src="https://github.com/user-attachments/assets/01f6b754-6b37-449d-8e31-f6bbde44a8b4" />
+
+
+* 대상 물체를 가로 기준으로 배치한 상태에서 총 10회 반복 측정한 결과 데이터입니다.
+<img width="3600" height="2100" alt="정면" src="https://github.com/user-attachments/assets/4d439143-2620-45ff-a60e-162a5c258208" />
+
+* 대상 물체를 정면 기준으로 배치한 상태에서 총 10회 반복 측정한 결과 데이터입니다.
+
 
 ## 6. 설치 및 실행 방법 (Getting Started)
 ```bash
