@@ -1,4 +1,4 @@
-# 🖐️ VR 환경 다중 카메라 핑거 트래킹 시스템 (VR Multi-Camera Finger Tracking)
+# VR 환경 다중 카메라 핑거 트래킹 시스템 (VR Multi-Camera Finger Tracking)
 
 > 3대의 카메라 비전 데이터를 융합하여 정밀한 손가락 움직임을 추적하고, 이를 Unity VR 환경에 실시간으로 연동하는 시스템입니다.
 
